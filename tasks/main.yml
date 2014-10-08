@@ -2,9 +2,12 @@
   script: bootstrap.sh
   register: python_path
   changed_when: "'Bootstrapping' in python_path.stdout"
+  when: ansible_python_interpreter is not defined
 
 - name: Set the python interpreter if needed
-  set_fact: ansible_python_interpreter={{ python_path.stdout_lines[python_path.stdout_lines|length-1] }}
+  set_fact: 
+     ansible_python_interpreter: "{{ python_path.stdout_lines[python_path.stdout_lines|length-1] }}"
+     python_bootstrap_needed: True
   when: ansible_python_interpreter is not defined
 
 - name: Check if we need to install pip
@@ -12,6 +15,7 @@
   register: need_pip
   ignore_errors: True
   changed_when: false
+  when: python_bootstrap_needed
 
 - name: Copy get-pip.py
   copy: src=get-pip.py dest=/home/core/get-pip.py

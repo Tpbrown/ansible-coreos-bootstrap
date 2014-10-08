@@ -1,16 +1,17 @@
-- name: check if bootstrap is needed
-  raw: stat $HOME/.bootstrapped
-  register: need_bootstrap
-  ignore_errors: True
-
 - name: Run bootstrap.sh
   script: bootstrap.sh
-  when: need_bootstrap | failed
+  register: python_path
+  changed_when: "'Bootstrapping' in python_path.stdout"
+
+- name: Set the python interpreter if needed
+  set_fact: ansible_python_interpreter={{ python_path.stdout_lines[python_path.stdout_lines|length-1] }}
+  when: ansible_python_interpreter is not defined
 
 - name: Check if we need to install pip
   shell: "{{ansible_python_interpreter}} -m pip --version"
   register: need_pip
   ignore_errors: True
+  changed_when: false
 
 - name: Copy get-pip.py
   copy: src=get-pip.py dest=/home/core/get-pip.py
@@ -22,3 +23,6 @@
 
 - name: Install pip launcher
   copy: src=runner dest=/home/core/bin/pip mode=0755
+
+- name: Now gather facts
+  setup:
